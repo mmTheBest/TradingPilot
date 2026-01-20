@@ -1,12 +1,13 @@
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 import random
-from typing import Callable
+from typing import Callable, Optional
 
 from sqlalchemy.orm import Session
 
 from tradepilot.db.models.tradeflow import StagedTradeRecord, TradeSubmitQueue
 from tradepilot.integrations.emsx import EmsxClient
+from tradepilot.audit.service import DbAuditWriter
 
 
 @dataclass
@@ -24,6 +25,7 @@ class SubmitWorker:
     session_factory: Callable[[], Session]
     emsx_client: EmsxClient
     retry_policy: RetryPolicy = field(default_factory=RetryPolicy)
+    audit_writer: Optional[DbAuditWriter] = None
 
     def run_once(self) -> int:
         now = datetime.now(tz=timezone.utc)
@@ -40,6 +42,7 @@ class SubmitWorker:
                     job.updated_at = now.isoformat()
                     if trade is not None:
                         trade.status = "submit_failed"
+                        self._audit(trade.tenant_id, "trade.submit_failed", trade, job.last_error, job.attempts)
                     processed += 1
                     continue
                 try:
@@ -48,18 +51,46 @@ class SubmitWorker:
                     job.status = "submitted"
                     trade.status = "submitted"
                     job.updated_at = now.isoformat()
+                    self._audit(trade.tenant_id, "trade.submitted", trade, None, job.attempts)
                 except Exception as exc:
                     job.last_error = str(exc)
                     job.updated_at = now.isoformat()
                     if job.attempts >= self.retry_policy.max_attempts:
                         job.status = "failed"
                         trade.status = "submit_failed"
+                        self._audit(trade.tenant_id, "trade.submit_failed", trade, job.last_error, job.attempts)
                     else:
                         delay = self.retry_policy.next_delay(job.attempts)
                         job.next_attempt_at = (now + delay).isoformat()
+                        self._audit(trade.tenant_id, "trade.submit_retry", trade, job.last_error, job.attempts)
                 processed += 1
             session.commit()
         return processed
+
+    def _audit(
+        self,
+        tenant_id: str,
+        event_type: str,
+        trade: StagedTradeRecord,
+        error: Optional[str],
+        attempts: int,
+    ) -> None:
+        if self.audit_writer is None:
+            return
+        self.audit_writer.write(
+            tenant_id=tenant_id,
+            event_type=event_type,
+            payload={
+                "trade_id": trade.trade_id,
+                "emsx_order_id": trade.emsx_order_id,
+                "status": trade.status,
+                "attempts": attempts,
+                "error": error or "",
+                "positions_as_of_ts": trade.positions_as_of_ts,
+                "limits_version_id": trade.limits_version_id,
+                "fx_rate_snapshot_id": trade.fx_rate_snapshot_id,
+            },
+        )
 
 
 def _parse_timestamp(timestamp: str) -> datetime:

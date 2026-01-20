@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, Request
 
+from tradepilot.audit.service import DbAuditWriter
 from tradepilot.chatops.approvals import ApproverAuthorizer
 from tradepilot.chatops.slack_commands import parse_slack_command
 from tradepilot.chatops.slack import verify_slack_signature
@@ -21,6 +22,10 @@ def get_trade_repository() -> TradeRepository:
 def get_approver_authorizer() -> ApproverAuthorizer:
     allowlist = {item.strip() for item in settings.slack_approver_allowlist.split(",") if item.strip()}
     return ApproverAuthorizer(session_factory=SessionLocal, env_allowlist=allowlist)
+
+
+def get_audit_writer() -> DbAuditWriter:
+    return DbAuditWriter(session_factory=SessionLocal)
 
 
 @router.post("/api/v1/chatops/events")
@@ -44,6 +49,7 @@ async def slack_commands(
     request: Request,
     repository: TradeRepository = Depends(get_trade_repository),
     authorizer: ApproverAuthorizer = Depends(get_approver_authorizer),
+    audit_writer: DbAuditWriter = Depends(get_audit_writer),
 ):
     body = (await request.body()).decode("utf-8")
     timestamp = request.headers.get("x-slack-request-timestamp", "")
@@ -80,6 +86,23 @@ async def slack_commands(
         )
         repository.update_trade_status(command.trade_id, "approved")
         repository.enqueue_submission(command.trade_id, next_attempt_at=now)
+        audit_writer.write(
+            tenant_id=trade.tenant_id,
+            event_type="trade.approved",
+            payload={
+                "trade_id": command.trade_id,
+                "action": "approve",
+                "reason": command.reason or "",
+                "slack_user_id": command.user_id,
+                "approver_id": decision.approver_id,
+                "approver_effective_from": decision.effective_from,
+                "approver_effective_to": decision.effective_to,
+                "allowlist_source": decision.reason,
+                "positions_as_of_ts": trade.positions_as_of_ts,
+                "limits_version_id": trade.limits_version_id,
+                "fx_rate_snapshot_id": trade.fx_rate_snapshot_id,
+            },
+        )
         post_in_channel(
             command.response_url,
             f"Trade {command.trade_id} approved by <@{command.user_id}>",
@@ -96,6 +119,23 @@ async def slack_commands(
         approver_effective_to=decision.effective_to,
     )
     repository.update_trade_status(command.trade_id, "rejected")
+    audit_writer.write(
+        tenant_id=trade.tenant_id,
+        event_type="trade.rejected",
+        payload={
+            "trade_id": command.trade_id,
+            "action": "reject",
+            "reason": command.reason or "",
+            "slack_user_id": command.user_id,
+            "approver_id": decision.approver_id,
+            "approver_effective_from": decision.effective_from,
+            "approver_effective_to": decision.effective_to,
+            "allowlist_source": decision.reason,
+            "positions_as_of_ts": trade.positions_as_of_ts,
+            "limits_version_id": trade.limits_version_id,
+            "fx_rate_snapshot_id": trade.fx_rate_snapshot_id,
+        },
+    )
     post_in_channel(
         command.response_url,
         f"Trade {command.trade_id} rejected by <@{command.user_id}>",

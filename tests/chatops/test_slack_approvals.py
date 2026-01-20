@@ -9,6 +9,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from tradepilot.api import chatops as chatops_api
+from tradepilot.audit.service import DbAuditWriter
 from tradepilot.chatops.approvals import ApproverAuthorizer
 from tradepilot.config import settings
 from tradepilot.db.base import Base
@@ -67,6 +68,7 @@ def test_slash_command_approve_updates_trade_and_enqueues(monkeypatch):
     authorizer = ApproverAuthorizer(session_factory=SessionLocal, env_allowlist=set())
     app.dependency_overrides[chatops_api.get_trade_repository] = lambda: repo
     app.dependency_overrides[chatops_api.get_approver_authorizer] = lambda: authorizer
+    app.dependency_overrides[chatops_api.get_audit_writer] = lambda: DbAuditWriter(session_factory=SessionLocal)
     monkeypatch.setattr(chatops_api, "post_in_channel", lambda *_args, **_kwargs: None)
     settings.slack_signing_secret = "secret"
 
