@@ -3,6 +3,7 @@ from typing import Literal, Optional
 from pydantic import BaseModel, Field
 
 TradeSide = Literal["buy", "sell"]
+TradeStatus = Literal["staged", "approved", "submitted", "rejected", "submit_failed"]
 
 
 class TradeRequest(BaseModel):
@@ -25,6 +26,7 @@ class StagedTrade(BaseModel):
     trade_id: str
     request: TradeRequest
     risk_checks: list[RiskCheckResult]
+    status: TradeStatus
     positions_as_of_ts: str
     limits_version_id: str
     fx_rate_snapshot_id: Optional[str] = None

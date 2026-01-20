@@ -1,9 +1,16 @@
+from uuid import UUID
+
 from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
 from tradepilot.api import trades as trades_api
 from tradepilot.data.provider import DataSnapshot, InMemoryDataProvider
+from tradepilot.db.base import Base
 from tradepilot.integrations.emsx import FakeEmsxClient
 from tradepilot.main import app
+from tradepilot.trades.repository import TradeRepository
 from tradepilot.trades.service import TradeService
 
 
@@ -20,9 +27,17 @@ def test_stage_trade_endpoint():
         limits_version_id="limits-1",
         fx_rate_snapshot_id="fx-1",
     )
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    SessionLocal = sessionmaker(bind=engine)
+    Base.metadata.create_all(engine)
     service = TradeService(
         emsx_client=FakeEmsxClient(),
         data_provider=InMemoryDataProvider(snapshot=snapshot),
+        repository=TradeRepository(session_factory=SessionLocal),
     )
     app.dependency_overrides[trades_api.get_trade_service] = lambda: service
     try:
@@ -33,7 +48,9 @@ def test_stage_trade_endpoint():
         )
         assert response.status_code == 200
         payload = response.json()
+        UUID(payload["trade_id"])
         assert payload["emsx_order_id"].startswith("emsx-")
+        assert payload["status"] == "staged"
         assert payload["positions_as_of_ts"] == "2026-01-19T09:30:00Z"
         assert payload["limits_version_id"] == "limits-1"
         assert payload["fx_rate_snapshot_id"] == "fx-1"

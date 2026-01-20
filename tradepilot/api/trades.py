@@ -4,6 +4,7 @@ from tradepilot.data.provider import DbDataProvider
 from tradepilot.db.session import SessionLocal
 from tradepilot.integrations.emsx import FakeEmsxClient
 from tradepilot.trades.models import TradeRequest
+from tradepilot.trades.repository import TradeRepository
 from tradepilot.trades.service import TradeService
 
 router = APIRouter()
@@ -11,7 +12,8 @@ router = APIRouter()
 
 def get_trade_service() -> TradeService:
     provider = DbDataProvider(session_factory=SessionLocal)
-    return TradeService(emsx_client=FakeEmsxClient(), data_provider=provider)
+    repository = TradeRepository(session_factory=SessionLocal)
+    return TradeService(emsx_client=FakeEmsxClient(), data_provider=provider, repository=repository)
 
 
 @router.post("/api/v1/trades/stage")

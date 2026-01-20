@@ -6,6 +6,7 @@ from tradepilot.integrations.emsx import EmsxClient
 from tradepilot.risk.checks import check_best_execution_prompt, check_liquidity_slippage
 from tradepilot.risk.limits_eval import evaluate_limit
 from tradepilot.trades.models import RiskCheckResult, StagedTrade, TradeRequest
+from tradepilot.trades.repository import TradeRepository
 
 
 class RiskCheckFailed(Exception):
@@ -16,6 +17,7 @@ class RiskCheckFailed(Exception):
 class TradeService:
     emsx_client: EmsxClient
     data_provider: DataProvider
+    repository: TradeRepository
     positions_sla_minutes: int = 5
     limits_sla_minutes: int = 60
 
@@ -50,10 +52,25 @@ class TradeService:
         if any(check.status == "failed" for check in checks):
             raise RiskCheckFailed("risk checks failed")
         emsx_order_id = self.emsx_client.stage_order(request)
+        trade_id = self.repository.create_staged_trade(
+            tenant_id=request.tenant_id,
+            book_id=request.book_id,
+            symbol=request.symbol,
+            side=request.side,
+            quantity=request.quantity,
+            order_type=request.order_type,
+            limit_price=request.limit_price,
+            status="staged",
+            emsx_order_id=emsx_order_id,
+            positions_as_of_ts=snapshot.positions_as_of_ts,
+            limits_version_id=snapshot.limits_version_id,
+            fx_rate_snapshot_id=snapshot.fx_rate_snapshot_id,
+        )
         return StagedTrade(
-            trade_id=emsx_order_id,
+            trade_id=trade_id,
             request=request,
             risk_checks=checks,
+            status="staged",
             positions_as_of_ts=snapshot.positions_as_of_ts,
             limits_version_id=snapshot.limits_version_id,
             fx_rate_snapshot_id=snapshot.fx_rate_snapshot_id,
