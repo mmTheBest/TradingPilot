@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://tradepilot:tradepilot@localhost:5432/tradepilot"
     slack_signing_secret: str = "change-me"
     slack_bot_token: str = "change-me"
+    slack_approver_allowlist: str = ""
     teams_app_id: str = "change-me"
     teams_app_password: str = "change-me"
     emsx_endpoint: str = "http://localhost:9000"
