@@ -1,21 +1,22 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
+from tradepilot.data.provider import DbDataProvider
+from tradepilot.db.session import SessionLocal
 from tradepilot.integrations.emsx import FakeEmsxClient
 from tradepilot.trades.models import TradeRequest
 from tradepilot.trades.service import TradeService
 
 router = APIRouter()
-service = TradeService(emsx_client=FakeEmsxClient())
+
+
+def get_trade_service() -> TradeService:
+    provider = DbDataProvider(session_factory=SessionLocal)
+    return TradeService(emsx_client=FakeEmsxClient(), data_provider=provider)
 
 
 @router.post("/api/v1/trades/stage")
-def stage_trade(request: TradeRequest):
-    staged = service.stage_trade(
-        request,
-        current_position=0,
-        position_limit=1_000_000,
-        adv=1_000_000,
-    )
+def stage_trade(request: TradeRequest, service: TradeService = Depends(get_trade_service)):
+    staged = service.stage_trade(request)
     return staged.model_dump()
 
 

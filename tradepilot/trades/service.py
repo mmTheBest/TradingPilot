@@ -1,11 +1,10 @@
 from dataclasses import dataclass
 
+from tradepilot.data.provider import DataProvider, DataProviderError
+from tradepilot.gating.freshness import FreshnessGate
 from tradepilot.integrations.emsx import EmsxClient
-from tradepilot.risk.checks import (
-    check_best_execution_prompt,
-    check_liquidity_slippage,
-    check_position_limit,
-)
+from tradepilot.risk.checks import check_best_execution_prompt, check_liquidity_slippage
+from tradepilot.risk.limits_eval import evaluate_limit
 from tradepilot.trades.models import RiskCheckResult, StagedTrade, TradeRequest
 
 
@@ -16,17 +15,36 @@ class RiskCheckFailed(Exception):
 @dataclass
 class TradeService:
     emsx_client: EmsxClient
+    data_provider: DataProvider
+    positions_sla_minutes: int = 5
+    limits_sla_minutes: int = 60
 
-    def stage_trade(
-        self,
-        request: TradeRequest,
-        current_position: float,
-        position_limit: float,
-        adv: float,
-    ) -> StagedTrade:
+    def stage_trade(self, request: TradeRequest) -> StagedTrade:
+        try:
+            snapshot = self.data_provider.get_snapshot(
+                tenant_id=request.tenant_id,
+                book_id=request.book_id,
+                symbol=request.symbol,
+            )
+        except DataProviderError as exc:
+            raise RiskCheckFailed(f"data provider error: {exc}") from exc
+        gate = FreshnessGate(
+            positions_sla_minutes=self.positions_sla_minutes,
+            limits_sla_minutes=self.limits_sla_minutes,
+        )
+        gate_result = gate.evaluate(snapshot.positions_age_minutes, snapshot.limits_age_minutes)
+        if not gate_result.allowed:
+            raise RiskCheckFailed(f"freshness gate blocked: {gate_result.reason}")
+
+        projected_exposure = snapshot.current_exposure + request.quantity
         checks: list[RiskCheckResult] = [
-            check_position_limit(current_position, request.quantity, position_limit),
-            check_liquidity_slippage(adv, request.quantity),
+            evaluate_limit(
+                projected_exposure,
+                snapshot.absolute_limit,
+                snapshot.relative_limit_pct,
+                snapshot.book_notional,
+            ),
+            check_liquidity_slippage(snapshot.adv, request.quantity),
             check_best_execution_prompt(request.order_type),
         ]
         if any(check.status == "failed" for check in checks):
@@ -36,5 +54,8 @@ class TradeService:
             trade_id=emsx_order_id,
             request=request,
             risk_checks=checks,
+            positions_as_of_ts=snapshot.positions_as_of_ts,
+            limits_version_id=snapshot.limits_version_id,
+            fx_rate_snapshot_id=snapshot.fx_rate_snapshot_id,
             emsx_order_id=emsx_order_id,
         )

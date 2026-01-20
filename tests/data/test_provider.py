@@ -1,0 +1,21 @@
+from tradepilot.data.provider import DataSnapshot, InMemoryDataProvider
+
+
+def test_in_memory_provider_returns_snapshot():
+    snapshot = DataSnapshot(
+        positions_age_minutes=1,
+        limits_age_minutes=2,
+        current_exposure=100.0,
+        absolute_limit=200.0,
+        relative_limit_pct=0.2,
+        book_notional=1000.0,
+        adv=500.0,
+        positions_as_of_ts="2026-01-19T09:30:00Z",
+        limits_version_id="limits-1",
+        fx_rate_snapshot_id="fx-1",
+    )
+    provider = InMemoryDataProvider(snapshot=snapshot)
+
+    returned = provider.get_snapshot(tenant_id="tenant-1", book_id="book-1", symbol="AAPL")
+
+    assert returned == snapshot

@@ -1,13 +1,41 @@
 from fastapi.testclient import TestClient
 
+from tradepilot.api import trades as trades_api
+from tradepilot.data.provider import DataSnapshot, InMemoryDataProvider
+from tradepilot.integrations.emsx import FakeEmsxClient
 from tradepilot.main import app
+from tradepilot.trades.service import TradeService
 
 
 def test_stage_trade_endpoint():
-    client = TestClient(app)
-    response = client.post(
-        "/api/v1/trades/stage",
-        json={"symbol": "AAPL", "side": "buy", "quantity": 10},
+    snapshot = DataSnapshot(
+        positions_age_minutes=0,
+        limits_age_minutes=0,
+        current_exposure=0.0,
+        absolute_limit=1_000_000.0,
+        relative_limit_pct=1.0,
+        book_notional=10_000_000.0,
+        adv=1_000_000.0,
+        positions_as_of_ts="2026-01-19T09:30:00Z",
+        limits_version_id="limits-1",
+        fx_rate_snapshot_id="fx-1",
     )
-    assert response.status_code == 200
-    assert response.json()["emsx_order_id"].startswith("emsx-")
+    service = TradeService(
+        emsx_client=FakeEmsxClient(),
+        data_provider=InMemoryDataProvider(snapshot=snapshot),
+    )
+    app.dependency_overrides[trades_api.get_trade_service] = lambda: service
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/api/v1/trades/stage",
+            json={"tenant_id": "tenant-1", "book_id": "book-1", "symbol": "AAPL", "side": "buy", "quantity": 10},
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["emsx_order_id"].startswith("emsx-")
+        assert payload["positions_as_of_ts"] == "2026-01-19T09:30:00Z"
+        assert payload["limits_version_id"] == "limits-1"
+        assert payload["fx_rate_snapshot_id"] == "fx-1"
+    finally:
+        app.dependency_overrides.clear()
