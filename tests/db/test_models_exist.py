@@ -9,8 +9,12 @@ from tradepilot.db.models import (
     RiskLimitsSnapshotFull,
     RiskLimitsVersioned,
     SecurityMaster,
+    SlackApprover,
     SectorTaxonomy,
+    StagedTradeRecord,
     Tenant,
+    TradeApproval,
+    TradeSubmitQueue,
 )
 
 
@@ -27,3 +31,7 @@ def test_models_importable():
     assert RiskLimitsSnapshotFull
     assert RiskLimitsDelta
     assert AuditEvent
+    assert StagedTradeRecord
+    assert TradeApproval
+    assert TradeSubmitQueue
+    assert SlackApprover
