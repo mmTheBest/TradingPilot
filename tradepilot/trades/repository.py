@@ -83,6 +83,10 @@ class TradeRepository:
             record.status = status
             session.commit()
 
+    def get_trade(self, trade_id: str) -> Optional[StagedTradeRecord]:
+        with self.session_factory() as session:
+            return session.get(StagedTradeRecord, trade_id)
+
     def enqueue_submission(self, trade_id: str, next_attempt_at: str) -> None:
         now = datetime.now(tz=timezone.utc).isoformat()
         item = TradeSubmitQueue(
