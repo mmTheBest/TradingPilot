@@ -38,10 +38,18 @@ class IngestWorker:
                 self.repository.record_positions_ingest(job["tenant_id"], job["book_id"], as_of_ts, job["reason"], rows)
 
                 if self.fx_adapter is not None:
+                    snapshot_id = str(uuid4())
                     pairs = _extract_pairs(rows, base_ccy="USD")
                     if pairs:
                         rates = self.fx_adapter.fetch_fx_snapshot(as_of_ts, pairs)
-                        self.repository.record_fx_ingest(job["tenant_id"], job["book_id"], as_of_ts, "positions_sync", rates)
+                        self.repository.record_fx_ingest(
+                            job["tenant_id"],
+                            job["book_id"],
+                            as_of_ts,
+                            "positions_sync",
+                            rates,
+                            snapshot_id,
+                        )
                 payload_hash = hash_payload(rows)
                 row_count = len(rows)
             elif data_type == "limits":
@@ -62,7 +70,14 @@ class IngestWorker:
                 if self.fx_adapter is None:
                     raise ValueError("fx adapter not configured")
                 rates = self.fx_adapter.fetch_fx_snapshot(now, [])
-                self.repository.record_fx_ingest(job["tenant_id"], job["book_id"], now, job["reason"], rates)
+                self.repository.record_fx_ingest(
+                    job["tenant_id"],
+                    job["book_id"],
+                    now,
+                    job["reason"],
+                    rates,
+                    str(uuid4()),
+                )
                 as_of_ts = now
                 payload_hash = hash_payload(rates)
                 row_count = len(rates)

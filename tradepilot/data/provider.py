@@ -99,7 +99,7 @@ class DbDataProvider:
             adv=self.default_adv,
             positions_as_of_ts=positions.as_of_ts,
             limits_version_id=limits_version_id,
-            fx_rate_snapshot_id=fx_snapshot.id if fx_snapshot else None,
+            fx_rate_snapshot_id=fx_snapshot.snapshot_id if fx_snapshot else None,
         )
 
 

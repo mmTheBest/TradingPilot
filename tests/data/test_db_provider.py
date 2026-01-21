@@ -49,7 +49,8 @@ def test_db_provider_returns_latest_snapshot():
         )
         session.add(
             FxRateSnapshot(
-                id="fx-1",
+                id="fx-row-1",
+                snapshot_id="fx-1",
                 vendor="vendor",
                 as_of_ts=fx_ts,
                 base_ccy="USD",

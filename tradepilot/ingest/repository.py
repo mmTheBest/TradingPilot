@@ -141,12 +141,14 @@ class IngestRepository:
         as_of_ts: str,
         reason: str,
         rates: list[dict],
+        snapshot_id: str,
     ) -> None:
         with self.session_factory() as session:
             for rate in rates:
                 session.add(
                     FxRateSnapshot(
                         id=str(uuid4()),
+                        snapshot_id=snapshot_id,
                         vendor=rate["vendor"],
                         as_of_ts=as_of_ts,
                         base_ccy=rate["base_ccy"],

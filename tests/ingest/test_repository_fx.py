@@ -18,7 +18,9 @@ def test_fx_ingest_writes_snapshot():
         as_of_ts="2026-01-20T10:00:00Z",
         reason="positions_sync",
         rates=[{"vendor": "bg", "base_ccy": "USD", "quote_ccy": "EUR", "mid_rate": 1.1}],
+        snapshot_id="snap-1",
     )
 
     with SessionLocal() as session:
-        assert session.query(FxRateSnapshot).count() == 1
+        row = session.query(FxRateSnapshot).first()
+        assert row.snapshot_id == "snap-1"
