@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 
-from tradepilot.auth.dependencies import require_api_key
+from tradepilot.auth.dependencies import require_api_key, require_role
 from tradepilot.data.provider import DbDataProvider
 from tradepilot.db.session import SessionLocal
 from tradepilot.ingest.queue import IngestQueue
@@ -31,17 +31,17 @@ def get_trade_service() -> TradeService:
 def stage_trade(
     request: TradeRequest,
     service: TradeService = Depends(get_trade_service),
-    _auth=Depends(require_api_key),
+    _auth=Depends(require_role({"OPS", "TRADER"})),
 ):
     staged = service.stage_trade(request, actor_role=_auth.get("role"))
     return staged.model_dump()
 
 
 @router.post("/api/v1/trades/{trade_id}/approve")
-def approve_trade(trade_id: str, _auth=Depends(require_api_key)):
+def approve_trade(trade_id: str, _auth=Depends(require_role({"RISK", "OPS"}))):
     return {"status": "approved", "trade_id": trade_id}
 
 
 @router.post("/api/v1/trades/{trade_id}/reject")
-def reject_trade(trade_id: str, _auth=Depends(require_api_key)):
+def reject_trade(trade_id: str, _auth=Depends(require_role({"RISK", "OPS"}))):
     return {"status": "rejected", "trade_id": trade_id}

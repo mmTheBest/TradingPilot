@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, Request
 
-from tradepilot.auth.dependencies import require_api_key
+from tradepilot.auth.dependencies import require_role
 from tradepilot.audit.service import DbAuditWriter
 from tradepilot.chatops.approvals import ApproverAuthorizer
 from tradepilot.chatops.slack_commands import parse_slack_command
@@ -30,7 +30,7 @@ def get_audit_writer() -> DbAuditWriter:
 
 
 @router.post("/api/v1/chatops/events")
-async def ingest_chatops_event(request: Request, _auth=Depends(require_api_key)):
+async def ingest_chatops_event(request: Request, _auth=Depends(require_role({"OPS"}))):
     body = (await request.body()).decode("utf-8")
     platform = request.headers.get("x-chat-platform", "slack")
     if platform == "slack":
@@ -51,7 +51,7 @@ async def slack_commands(
     repository: TradeRepository = Depends(get_trade_repository),
     authorizer: ApproverAuthorizer = Depends(get_approver_authorizer),
     audit_writer: DbAuditWriter = Depends(get_audit_writer),
-    _auth=Depends(require_api_key),
+    _auth=Depends(require_role({"RISK", "OPS"})),
 ):
     body = (await request.body()).decode("utf-8")
     timestamp = request.headers.get("x-slack-request-timestamp", "")

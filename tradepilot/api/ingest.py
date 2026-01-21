@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, Header, HTTPException, Depends
 from pydantic import BaseModel
 
+from tradepilot.auth.dependencies import require_role
 from tradepilot.config import settings
 from tradepilot.db.session import SessionLocal
 from tradepilot.ingest.queue import IngestQueue
@@ -15,7 +16,11 @@ class PokeRequest(BaseModel):
 
 
 @router.post("/poke")
-def poke_ingest(request: PokeRequest, x_ingest_secret: str = Header(default="")):
+def poke_ingest(
+    request: PokeRequest,
+    x_ingest_secret: str = Header(default=""),
+    _auth=Depends(require_role({"OPS"})),
+):
     if x_ingest_secret != settings.ingest_poke_secret:
         raise HTTPException(status_code=401, detail="unauthorized")
     queue = IngestQueue(session_factory=SessionLocal)

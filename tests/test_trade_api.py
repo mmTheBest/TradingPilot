@@ -80,3 +80,12 @@ def test_stage_trade_endpoint():
         assert payload["fx_rate_snapshot_id"] == "fx-1"
     finally:
         app.dependency_overrides.clear()
+
+
+def test_ingest_poke_requires_ops():
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/ingest/poke",
+        json={"tenant_id": "t1", "book_id": "b1", "data_type": "positions"},
+    )
+    assert response.status_code == 401
