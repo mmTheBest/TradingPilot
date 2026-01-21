@@ -9,6 +9,7 @@ from tradepilot.db.models.ingest import IngestRun
 from tradepilot.ingest.adapters.base import FxAdapter, LimitsAdapter, PositionsAdapter
 from tradepilot.ingest.canonical import hash_payload
 from tradepilot.ingest.queue import IngestQueue
+from tradepilot.metrics import INGEST_FAILURE, INGEST_SUCCESS
 from tradepilot.ingest.repository import IngestRepository
 from tradepilot.trades.submit_worker import RetryPolicy
 
@@ -85,9 +86,11 @@ class IngestWorker:
                 raise ValueError(f"unknown data type: {data_type}")
 
             self._finish_run(run_id, now, "succeeded", as_of_ts, payload_hash, row_count, None)
+            INGEST_SUCCESS.labels(data_type).inc()
             self.queue.mark_succeeded(job["id"], now)
         except Exception as exc:
             self._finish_run(run_id, now, "failed", None, None, None, str(exc))
+            INGEST_FAILURE.labels(data_type).inc()
             attempts = job["attempts"] + 1
             if attempts >= self.retry_policy.max_attempts:
                 self.queue.mark_failed(job["id"], now, str(exc), attempts)

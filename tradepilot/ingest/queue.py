@@ -6,11 +6,20 @@ from uuid import uuid4
 from sqlalchemy.orm import Session
 
 from tradepilot.db.models.ingest import IngestRefreshQueue
+from tradepilot.metrics import QUEUE_DEPTH
 
 
 @dataclass
 class IngestQueue:
     session_factory: Callable[[], Session]
+
+    def _update_depth(self, session: Session, data_type: str) -> None:
+        count = (
+            session.query(IngestRefreshQueue)
+            .filter_by(status="pending", data_type=data_type)
+            .count()
+        )
+        QUEUE_DEPTH.labels(data_type).set(count)
 
     def enqueue(self, tenant_id: str, book_id: str, data_type: str, reason: str) -> str:
         now = datetime.now(tz=timezone.utc).isoformat()
@@ -40,6 +49,7 @@ class IngestQueue:
             )
             session.add(job)
             session.commit()
+            self._update_depth(session, data_type)
             return job.id
 
     def claim_due(self, data_type: str, now: str) -> Optional[dict]:
@@ -57,6 +67,7 @@ class IngestQueue:
             job.status = "processing"
             job.updated_at = now
             session.commit()
+            self._update_depth(session, data_type)
             return {
                 "id": job.id,
                 "tenant_id": job.tenant_id,
@@ -82,6 +93,7 @@ class IngestQueue:
             job.status = "succeeded"
             job.updated_at = now
             session.commit()
+            self._update_depth(session, job.data_type)
 
     def mark_failed(self, job_id: str, now: str, error: str, attempts: int) -> None:
         with self.session_factory() as session:
@@ -93,6 +105,7 @@ class IngestQueue:
             job.attempts = attempts
             job.updated_at = now
             session.commit()
+            self._update_depth(session, job.data_type)
 
     def reschedule(self, job_id: str, now: str, next_attempt_at: str, error: str, attempts: int) -> None:
         with self.session_factory() as session:
@@ -105,3 +118,4 @@ class IngestQueue:
             job.next_attempt_at = next_attempt_at
             job.updated_at = now
             session.commit()
+            self._update_depth(session, job.data_type)
