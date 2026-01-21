@@ -29,10 +29,13 @@ def test_db_provider_returns_latest_snapshot():
                 as_of_ts=positions_ts,
                 net_exposure=250.0,
                 gross_notional=1000.0,
+                snapshot_json=[],
+                payload_hash="positions-hash",
             )
         )
         session.add(
             RiskLimitsVersioned(
+                id="limits-row-1",
                 version_id="limits-1",
                 tenant_id="tenant-1",
                 book_id="book-1",

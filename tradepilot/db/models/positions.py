@@ -1,7 +1,8 @@
-from sqlalchemy import String
+from sqlalchemy import Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from tradepilot.db.base import Base
+from tradepilot.db.types import JSONB_COMPAT
 
 
 class PositionsSnapshotFull(Base):
@@ -12,6 +13,8 @@ class PositionsSnapshotFull(Base):
     as_of_ts: Mapped[str] = mapped_column(String(32), nullable=False)
     net_exposure: Mapped[float] = mapped_column(nullable=False)
     gross_notional: Mapped[float] = mapped_column(nullable=False)
+    snapshot_json: Mapped[list[dict]] = mapped_column(JSONB_COMPAT, nullable=False)
+    payload_hash: Mapped[str] = mapped_column(String(64), nullable=False)
 
 
 class PositionsDelta(Base):
@@ -21,3 +24,6 @@ class PositionsDelta(Base):
     book_id: Mapped[str] = mapped_column(String(36), nullable=False)
     event_ts: Mapped[str] = mapped_column(String(32), nullable=False)
     reason: Mapped[str] = mapped_column(String(64), nullable=False)
+    ops_json: Mapped[list[dict]] = mapped_column(JSONB_COMPAT, nullable=False)
+    payload_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    op_count: Mapped[int] = mapped_column(Integer, nullable=False)
