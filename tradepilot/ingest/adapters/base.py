@@ -14,3 +14,8 @@ class LimitsAdapter(Protocol):
 class FxAdapter(Protocol):
     def fetch_fx_snapshot(self, as_of_ts: str, pairs: list[tuple[str, str]]) -> list[dict]:
         raise NotImplementedError
+
+
+class ReferenceAdapter(Protocol):
+    def fetch_reference(self) -> list[dict]:
+        raise NotImplementedError
