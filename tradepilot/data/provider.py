@@ -5,7 +5,7 @@ from typing import Callable, Optional, Protocol
 from sqlalchemy.orm import Session
 
 from tradepilot.db.models.fx import FxRateSnapshot
-from tradepilot.db.models.limits import RiskLimitsVersioned
+from tradepilot.db.models.limits import RiskLimitsSnapshotFull, RiskLimitsVersioned
 from tradepilot.db.models.positions import PositionsSnapshotFull
 
 
@@ -56,19 +56,38 @@ class DbDataProvider:
             if positions is None:
                 raise DataProviderError("positions snapshot not found")
 
-            limits = (
-                session.query(RiskLimitsVersioned)
+            limits_snapshot = (
+                session.query(RiskLimitsSnapshotFull)
                 .filter_by(tenant_id=tenant_id, book_id=book_id)
-                .order_by(RiskLimitsVersioned.effective_from.desc())
+                .order_by(RiskLimitsSnapshotFull.as_of_ts.desc())
                 .first()
             )
-            if limits is None:
-                raise DataProviderError("limits version not found")
+            if limits_snapshot is None:
+                limits = (
+                    session.query(RiskLimitsVersioned)
+                    .filter_by(tenant_id=tenant_id, book_id=book_id)
+                    .order_by(RiskLimitsVersioned.effective_from.desc())
+                    .first()
+                )
+                if limits is None:
+                    raise DataProviderError("limits version not found")
+                limits_age = _age_minutes(limits.effective_from)
+                limits_version_id = limits.version_id
+            else:
+                limits = (
+                    session.query(RiskLimitsVersioned)
+                    .filter_by(tenant_id=tenant_id, book_id=book_id, version_id=limits_snapshot.version_id)
+                    .order_by(RiskLimitsVersioned.effective_from.desc())
+                    .first()
+                )
+                if limits is None:
+                    raise DataProviderError("limits snapshot version missing")
+                limits_age = _age_minutes(limits_snapshot.as_of_ts)
+                limits_version_id = limits_snapshot.version_id
 
             fx_snapshot = session.query(FxRateSnapshot).order_by(FxRateSnapshot.as_of_ts.desc()).first()
 
         positions_age = _age_minutes(positions.as_of_ts)
-        limits_age = _age_minutes(limits.effective_from)
 
         return DataSnapshot(
             positions_age_minutes=positions_age,
@@ -79,7 +98,7 @@ class DbDataProvider:
             book_notional=positions.gross_notional,
             adv=self.default_adv,
             positions_as_of_ts=positions.as_of_ts,
-            limits_version_id=limits.version_id,
+            limits_version_id=limits_version_id,
             fx_rate_snapshot_id=fx_snapshot.id if fx_snapshot else None,
         )
 
