@@ -4,6 +4,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="TRADEPILOT_", env_file=".env", extra="ignore")
     database_url: str = "postgresql+psycopg://tradepilot:tradepilot@localhost:5432/tradepilot"
+    positions_view: str = "positions_view"
     slack_signing_secret: str = "change-me"
     slack_bot_token: str = "change-me"
     slack_approver_allowlist: str = ""
