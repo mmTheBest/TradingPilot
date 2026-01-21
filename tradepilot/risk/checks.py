@@ -25,3 +25,15 @@ def check_liquidity_slippage(adv: float, proposed_quantity: float, max_adv_pct: 
 
 def check_best_execution_prompt(order_type: str) -> RiskCheckResult:
     return RiskCheckResult(check_name="best_execution", status="warning", message="best execution confirmation required")
+
+
+def check_dimension_limit(
+    current: float,
+    absolute_limit: float,
+    relative_limit_pct: float,
+    book_notional: float,
+) -> RiskCheckResult:
+    relative_limit = relative_limit_pct * book_notional
+    if current > min(absolute_limit, relative_limit):
+        return RiskCheckResult(check_name="dimension_limit", status="failed", message="limit breached")
+    return RiskCheckResult(check_name="dimension_limit", status="passed", message="ok")
