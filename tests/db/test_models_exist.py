@@ -7,6 +7,7 @@ from tradepilot.db.models import (
     IngestRun,
     IssuerMaster,
     MarketNewsItem,
+    TradeOverride,
     PositionsDelta,
     PositionsSnapshotFull,
     RiskLimitsDelta,
@@ -45,6 +46,7 @@ def test_models_importable():
     assert AuditEvent
     assert ApiKey
     assert MarketNewsItem
+    assert TradeOverride
     assert StagedTradeRecord
     assert TradeApproval
     assert TradeSubmitQueue

@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     fx_adapter_kind: str = "fixture"
     limits_api_endpoint: str = "http://localhost:9100"
     fx_api_endpoint: str = "http://localhost:9200"
+    override_absolute_cap: float = 50_000.0
+    override_relative_cap_pct: float = 0.02
+    override_max_per_hour: int = 3
 
 
 settings = Settings()

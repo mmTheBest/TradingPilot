@@ -15,6 +15,8 @@ class TradeRequest(BaseModel):
     price: Optional[float] = None
     order_type: str = "market"
     limit_price: Optional[float] = None
+    override_requested: bool = False
+    override_reason: Optional[str] = None
 
 
 class RiskCheckResult(BaseModel):

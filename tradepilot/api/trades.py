@@ -6,6 +6,7 @@ from tradepilot.db.session import SessionLocal
 from tradepilot.ingest.queue import IngestQueue
 from tradepilot.integrations.emsx import FakeEmsxClient
 from tradepilot.trades.models import TradeRequest
+from tradepilot.trades.override_repository import OverrideRepository
 from tradepilot.trades.repository import TradeRepository
 from tradepilot.trades.service import TradeService
 
@@ -16,10 +17,12 @@ def get_trade_service() -> TradeService:
     provider = DbDataProvider(session_factory=SessionLocal)
     repository = TradeRepository(session_factory=SessionLocal)
     ingest_queue = IngestQueue(session_factory=SessionLocal)
+    override_repo = OverrideRepository(session_factory=SessionLocal)
     return TradeService(
         emsx_client=FakeEmsxClient(),
         data_provider=provider,
         repository=repository,
+        override_repository=override_repo,
         ingest_queue=ingest_queue,
     )
 
@@ -30,7 +33,7 @@ def stage_trade(
     service: TradeService = Depends(get_trade_service),
     _auth=Depends(require_api_key),
 ):
-    staged = service.stage_trade(request)
+    staged = service.stage_trade(request, actor_role=_auth.get("role"))
     return staged.model_dump()
 
 
