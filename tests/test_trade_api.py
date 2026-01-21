@@ -59,7 +59,14 @@ def test_stage_trade_endpoint():
         client = TestClient(app)
         response = client.post(
             "/api/v1/trades/stage",
-            json={"tenant_id": "tenant-1", "book_id": "book-1", "symbol": "AAPL", "side": "buy", "quantity": 10},
+            json={
+                "tenant_id": "tenant-1",
+                "book_id": "book-1",
+                "symbol": "AAPL",
+                "side": "buy",
+                "quantity": 10,
+                "price": 100.0,
+            },
         )
         assert response.status_code == 200
         payload = response.json()

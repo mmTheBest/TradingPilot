@@ -12,6 +12,7 @@ class TradeRequest(BaseModel):
     symbol: str
     side: TradeSide
     quantity: float = Field(gt=0)
+    price: Optional[float] = None
     order_type: str = "market"
     limit_price: Optional[float] = None
 

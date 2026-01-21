@@ -24,6 +24,18 @@ def build_service(snapshot: DataSnapshot) -> TradeService:
     )
 
 
+def test_trade_request_accepts_price():
+    request = TradeRequest(
+        tenant_id="tenant-1",
+        book_id="book-1",
+        symbol="AAPL",
+        side="buy",
+        quantity=10,
+        price=100.0,
+    )
+    assert request.price == 100.0
+
+
 def test_trade_service_blocks_on_failed_risk_check():
     snapshot = DataSnapshot(
         positions_age_minutes=1,
