@@ -1,4 +1,4 @@
-from sqlalchemy import Integer, String
+from sqlalchemy import Index, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from tradepilot.db.base import Base
@@ -21,6 +21,11 @@ class IngestRun(Base):
 
 class IngestRefreshQueue(Base):
     __tablename__ = "ingest_refresh_queue"
+    __table_args__ = (
+        UniqueConstraint("dedupe_key", name="uq_ingest_refresh_queue_dedupe"),
+        Index("ix_ingest_refresh_queue_status", "status"),
+        Index("ix_ingest_refresh_queue_next_attempt", "next_attempt_at"),
+    )
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     tenant_id: Mapped[str] = mapped_column(String(36), nullable=False)
     book_id: Mapped[str] = mapped_column(String(36), nullable=False)
