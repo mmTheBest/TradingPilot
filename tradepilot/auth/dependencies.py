@@ -16,3 +16,13 @@ def require_api_key(x_api_key: str = Header(default="")):
         key.last_used_at = datetime.now(tz=timezone.utc).isoformat()
         session.commit()
         return {"tenant_id": key.tenant_id, "role": key.role}
+
+
+def require_role(allowed_roles: set[str]):
+    def _dependency(x_api_key: str = Header(default="")):
+        ctx = require_api_key(x_api_key=x_api_key)
+        if ctx["role"] not in allowed_roles:
+            raise HTTPException(status_code=403, detail="forbidden")
+        return ctx
+
+    return _dependency
