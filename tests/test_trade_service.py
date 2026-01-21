@@ -83,3 +83,53 @@ def test_stage_trade_returns_internal_trade_id():
     UUID(staged.trade_id)
     assert staged.emsx_order_id is not None
     assert staged.trade_id != staged.emsx_order_id
+
+
+def test_stale_gate_enqueues_refresh():
+    class DummyQueue:
+        def __init__(self):
+            self.calls: list[str] = []
+
+        def enqueue(self, tenant_id, book_id, data_type, reason):
+            self.calls.append(data_type)
+            return "job-1"
+
+    class DummyRepo:
+        def create_staged_trade(self, **kwargs):
+            raise AssertionError("should not be called")
+
+    snapshot = DataSnapshot(
+        positions_age_minutes=10,
+        limits_age_minutes=10,
+        current_exposure=0.0,
+        absolute_limit=100.0,
+        relative_limit_pct=0.1,
+        book_notional=1000.0,
+        adv=0.0,
+        positions_as_of_ts="2026-01-20T09:00:00Z",
+        limits_version_id="v1",
+        fx_rate_snapshot_id=None,
+    )
+    provider = InMemoryDataProvider(snapshot=snapshot)
+    queue = DummyQueue()
+    service = TradeService(
+        emsx_client=FakeEmsxClient(),
+        data_provider=provider,
+        repository=DummyRepo(),
+        ingest_queue=queue,
+    )
+    request = TradeRequest(
+        tenant_id="t1",
+        book_id="b1",
+        symbol="AAPL",
+        side="buy",
+        quantity=10,
+        order_type="market",
+        limit_price=None,
+    )
+
+    with pytest.raises(RiskCheckFailed):
+        service.stage_trade(request)
+
+    assert "positions" in queue.calls
+    assert "limits" in queue.calls

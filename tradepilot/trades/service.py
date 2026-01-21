@@ -20,6 +20,7 @@ class TradeService:
     repository: TradeRepository
     positions_sla_minutes: int = 5
     limits_sla_minutes: int = 60
+    ingest_queue: object | None = None
 
     def stage_trade(self, request: TradeRequest) -> StagedTrade:
         try:
@@ -36,6 +37,9 @@ class TradeService:
         )
         gate_result = gate.evaluate(snapshot.positions_age_minutes, snapshot.limits_age_minutes)
         if not gate_result.allowed:
+            if self.ingest_queue is not None:
+                self.ingest_queue.enqueue(request.tenant_id, request.book_id, "positions", reason="stale_gate")
+                self.ingest_queue.enqueue(request.tenant_id, request.book_id, "limits", reason="stale_gate")
             raise RiskCheckFailed(f"freshness gate blocked: {gate_result.reason}")
 
         projected_exposure = snapshot.current_exposure + request.quantity
