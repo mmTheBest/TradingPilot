@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     fx_api_endpoint: str = "http://localhost:9200"
     reference_adapter_kind: str = "api"
     reference_api_endpoint: str = "http://localhost:9300"
+    market_tz: str = "America/New_York"
+    market_open: str = "09:30"
+    market_close: str = "16:00"
     override_absolute_cap: float = 50_000.0
     override_relative_cap_pct: float = 0.02
     override_max_per_hour: int = 3
