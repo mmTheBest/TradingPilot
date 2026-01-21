@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     market_tz: str = "America/New_York"
     market_open: str = "09:30"
     market_close: str = "16:00"
+    max_request_bytes: int = 1_000_000
+    rate_limit_per_minute: int = 60
+    cors_origins: str = "*"
     override_absolute_cap: float = 50_000.0
     override_relative_cap_pct: float = 0.02
     override_max_per_hour: int = 3
