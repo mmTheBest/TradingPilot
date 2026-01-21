@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     teams_app_password: str = "change-me"
     emsx_endpoint: str = "http://localhost:9000"
     audit_bucket: str = "tradepilot-audit"
+    ingest_poke_secret: str = "change-me"
 
 
 settings = Settings()
