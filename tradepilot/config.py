@@ -13,6 +13,10 @@ class Settings(BaseSettings):
     emsx_endpoint: str = "http://localhost:9000"
     audit_bucket: str = "tradepilot-audit"
     ingest_poke_secret: str = "change-me"
+    limits_adapter_kind: str = "fixture"
+    fx_adapter_kind: str = "fixture"
+    limits_api_endpoint: str = "http://localhost:9100"
+    fx_api_endpoint: str = "http://localhost:9200"
 
 
 settings = Settings()
