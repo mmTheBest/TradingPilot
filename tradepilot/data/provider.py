@@ -30,6 +30,8 @@ class DataSnapshot:
     sector_exposure: float
     sector_absolute_limit: float
     sector_relative_limit_pct: float
+    symbol_price: float
+    symbol_notional: float
     fx_rate_snapshot_id: Optional[str] = None
 
 
@@ -112,14 +114,26 @@ class DbDataProvider:
 
             issuer_totals: dict[str, float] = defaultdict(float)
             sector_totals: dict[str, float] = defaultdict(float)
+            symbol_price: Optional[float] = None
+            symbol_notional = 0.0
             for row in positions_rows:
                 sec = security_map.get(row.get("symbol"))
                 if sec is None:
                     raise DataProviderError("security master missing for positions snapshot")
-                notional = float(row.get("quantity", 0)) * float(row.get("price", 0))
+                quantity = float(row.get("quantity", 0))
+                price = row.get("price")
+                if price is None:
+                    raise DataProviderError("positions snapshot missing price")
+                notional = quantity * float(price)
                 gross_notional = abs(notional)
                 issuer_totals[sec.issuer_id] += gross_notional
                 sector_totals[sec.sector_id] += gross_notional
+                if row.get("symbol") == symbol:
+                    symbol_price = float(price)
+                    symbol_notional = notional
+
+            if symbol_price is None:
+                raise DataProviderError("symbol price not found in positions snapshot")
 
             issuer_limits = next(
                 (
@@ -165,6 +179,8 @@ class DbDataProvider:
             sector_exposure=sector_totals.get(sector_id, 0.0),
             sector_absolute_limit=sector_limits.absolute_limit,
             sector_relative_limit_pct=sector_limits.relative_limit_pct,
+            symbol_price=symbol_price,
+            symbol_notional=symbol_notional,
             fx_rate_snapshot_id=fx_snapshot.snapshot_id if fx_snapshot else None,
         )
 

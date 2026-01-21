@@ -127,6 +127,8 @@ def test_db_provider_returns_latest_snapshot():
     assert snapshot.issuer_relative_limit_pct == 0.25
     assert snapshot.sector_absolute_limit == 700.0
     assert snapshot.sector_relative_limit_pct == 0.3
+    assert snapshot.symbol_price == 10.0
+    assert snapshot.symbol_notional == 100.0
     assert snapshot.fx_rate_snapshot_id == "fx-1"
     assert snapshot.positions_age_minutes >= 2
     assert snapshot.limits_age_minutes >= 3
@@ -221,3 +223,5 @@ def test_db_provider_limits_age_uses_snapshot_as_of():
 
     assert snapshot.limits_version_id == "limits-1"
     assert snapshot.limits_age_minutes >= 7
+    assert snapshot.symbol_price == 100.0
+    assert snapshot.symbol_notional == 100.0
