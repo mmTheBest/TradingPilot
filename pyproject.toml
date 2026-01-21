@@ -17,6 +17,7 @@ dependencies = [
   "slack-sdk>=3.27.0",
   "botbuilder-core>=4.15.0",
   "structlog>=24.1.0",
+  "prometheus_client>=0.20.0",
 ]
 
 [project.optional-dependencies]
