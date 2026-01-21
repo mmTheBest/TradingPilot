@@ -16,6 +16,7 @@ class IngestEnqueuer:
     positions_sla_minutes: int = 5
     positions_sla_off_hours: int = 15
     limits_sla_minutes: int = 60
+    reference_sla_minutes: int = 1440
 
     def enqueue_due(self, now_ts: str) -> int:
         enqueued = 0
@@ -34,6 +35,11 @@ class IngestEnqueuer:
                 last_limits = _last_success_ts(session, book.tenant_id, book.id, "limits")
                 if last_limits is None or should_refresh(last_limits, now_ts, self.limits_sla_minutes):
                     self.queue.enqueue(book.tenant_id, book.id, "limits", reason="scheduled")
+                    enqueued += 1
+
+                last_reference = _last_success_ts(session, book.tenant_id, book.id, "reference")
+                if last_reference is None or should_refresh(last_reference, now_ts, self.reference_sla_minutes):
+                    self.queue.enqueue(book.tenant_id, book.id, "reference", reason="scheduled")
                     enqueued += 1
 
         return enqueued

@@ -6,11 +6,12 @@ from uuid import uuid4
 from sqlalchemy.orm import Session
 
 from tradepilot.db.models.ingest import IngestRun
-from tradepilot.ingest.adapters.base import FxAdapter, LimitsAdapter, PositionsAdapter
+from tradepilot.ingest.adapters.base import FxAdapter, LimitsAdapter, PositionsAdapter, ReferenceAdapter
 from tradepilot.ingest.canonical import hash_payload
 from tradepilot.ingest.queue import IngestQueue
 from tradepilot.metrics import INGEST_FAILURE, INGEST_SUCCESS
 from tradepilot.ingest.repository import IngestRepository
+from tradepilot.ingest.reference_repository import ReferenceRepository
 from tradepilot.trades.submit_worker import RetryPolicy
 
 
@@ -22,6 +23,8 @@ class IngestWorker:
     positions_adapter: Optional[PositionsAdapter] = None
     limits_adapter: Optional[LimitsAdapter] = None
     fx_adapter: Optional[FxAdapter] = None
+    reference_adapter: Optional[ReferenceAdapter] = None
+    reference_repository: Optional[ReferenceRepository] = None
     retry_policy: RetryPolicy = field(default_factory=RetryPolicy)
 
     def run_once(self, data_type: str) -> int:
@@ -82,6 +85,14 @@ class IngestWorker:
                 as_of_ts = now
                 payload_hash = hash_payload(rates)
                 row_count = len(rates)
+            elif data_type == "reference":
+                if self.reference_adapter is None or self.reference_repository is None:
+                    raise ValueError("reference adapter not configured")
+                rows = self.reference_adapter.fetch_reference()
+                self.reference_repository.upsert_securities(rows)
+                as_of_ts = now
+                payload_hash = hash_payload(rows)
+                row_count = len(rows)
             else:
                 raise ValueError(f"unknown data type: {data_type}")
 

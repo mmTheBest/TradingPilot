@@ -30,9 +30,10 @@ def test_enqueuer_adds_jobs_when_stale():
 
     enqueued = enqueuer.enqueue_due(now_ts="2026-01-20T10:10:00Z")
 
-    assert enqueued == 2
+    assert enqueued == 3
     assert queue.pending_count("t1", "b1", "positions") == 1
     assert queue.pending_count("t1", "b1", "limits") == 1
+    assert queue.pending_count("t1", "b1", "reference") == 1
 
 
 def test_enqueuer_skips_when_recent():
@@ -80,6 +81,21 @@ def test_enqueuer_skips_when_recent():
                 error=None,
             )
         )
+        session.add(
+            IngestRun(
+                id="run-3",
+                tenant_id="t1",
+                book_id="b1",
+                data_type="reference",
+                started_at="2026-01-20T10:00:00Z",
+                finished_at="2026-01-20T10:02:00Z",
+                status="succeeded",
+                as_of_ts=None,
+                payload_hash=None,
+                row_count=1,
+                error=None,
+            )
+        )
         session.commit()
 
     queue = IngestQueue(session_factory=SessionLocal)
@@ -90,3 +106,4 @@ def test_enqueuer_skips_when_recent():
     assert enqueued == 0
     assert queue.pending_count("t1", "b1", "positions") == 0
     assert queue.pending_count("t1", "b1", "limits") == 0
+    assert queue.pending_count("t1", "b1", "reference") == 0
