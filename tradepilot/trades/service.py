@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from tradepilot.data.provider import DataProvider, DataProviderError
 from tradepilot.gating.freshness import FreshnessGate
 from tradepilot.integrations.emsx import EmsxClient
-from tradepilot.risk.checks import check_best_execution_prompt, check_liquidity_slippage
+from tradepilot.risk.checks import check_best_execution_prompt, check_dimension_limit, check_liquidity_slippage
 from tradepilot.risk.limits_eval import evaluate_limit
 from tradepilot.trades.models import RiskCheckResult, StagedTrade, TradeRequest
 from tradepilot.trades.repository import TradeRepository
@@ -43,11 +43,25 @@ class TradeService:
             raise RiskCheckFailed(f"freshness gate blocked: {gate_result.reason}")
 
         projected_exposure = snapshot.current_exposure + request.quantity
+        projected_issuer = snapshot.issuer_exposure + request.quantity
+        projected_sector = snapshot.sector_exposure + request.quantity
         checks: list[RiskCheckResult] = [
             evaluate_limit(
                 projected_exposure,
                 snapshot.absolute_limit,
                 snapshot.relative_limit_pct,
+                snapshot.book_notional,
+            ),
+            check_dimension_limit(
+                projected_issuer,
+                snapshot.issuer_absolute_limit,
+                snapshot.issuer_relative_limit_pct,
+                snapshot.book_notional,
+            ),
+            check_dimension_limit(
+                projected_sector,
+                snapshot.sector_absolute_limit,
+                snapshot.sector_relative_limit_pct,
                 snapshot.book_notional,
             ),
             check_liquidity_slippage(snapshot.adv, request.quantity),

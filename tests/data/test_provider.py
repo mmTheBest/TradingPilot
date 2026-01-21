@@ -12,6 +12,14 @@ def test_in_memory_provider_returns_snapshot():
         adv=500.0,
         positions_as_of_ts="2026-01-19T09:30:00Z",
         limits_version_id="limits-1",
+        issuer_id="issuer-1",
+        sector_id="sector-1",
+        issuer_exposure=100.0,
+        issuer_absolute_limit=1000.0,
+        issuer_relative_limit_pct=0.2,
+        sector_exposure=100.0,
+        sector_absolute_limit=2000.0,
+        sector_relative_limit_pct=0.3,
         fx_rate_snapshot_id="fx-1",
     )
     provider = InMemoryDataProvider(snapshot=snapshot)

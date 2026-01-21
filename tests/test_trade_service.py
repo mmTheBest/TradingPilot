@@ -35,6 +35,14 @@ def test_trade_service_blocks_on_failed_risk_check():
         adv=10_000,
         positions_as_of_ts="2026-01-19T09:30:00Z",
         limits_version_id="limits-1",
+        issuer_id="issuer-1",
+        sector_id="sector-1",
+        issuer_exposure=900,
+        issuer_absolute_limit=10_000,
+        issuer_relative_limit_pct=1.0,
+        sector_exposure=900,
+        sector_absolute_limit=10_000,
+        sector_relative_limit_pct=1.0,
         fx_rate_snapshot_id="fx-1",
     )
     service = build_service(snapshot)
@@ -54,6 +62,14 @@ def test_trade_service_blocks_on_stale_positions():
         adv=10_000,
         positions_as_of_ts="2026-01-19T09:30:00Z",
         limits_version_id="limits-1",
+        issuer_id="issuer-1",
+        sector_id="sector-1",
+        issuer_exposure=0,
+        issuer_absolute_limit=10_000,
+        issuer_relative_limit_pct=1.0,
+        sector_exposure=0,
+        sector_absolute_limit=10_000,
+        sector_relative_limit_pct=1.0,
         fx_rate_snapshot_id="fx-1",
     )
     service = build_service(snapshot)
@@ -74,6 +90,14 @@ def test_stage_trade_returns_internal_trade_id():
         adv=10_000,
         positions_as_of_ts="2026-01-19T09:30:00Z",
         limits_version_id="limits-1",
+        issuer_id="issuer-1",
+        sector_id="sector-1",
+        issuer_exposure=0,
+        issuer_absolute_limit=10_000,
+        issuer_relative_limit_pct=1.0,
+        sector_exposure=0,
+        sector_absolute_limit=10_000,
+        sector_relative_limit_pct=1.0,
         fx_rate_snapshot_id="fx-1",
     )
     service = build_service(snapshot)
@@ -108,6 +132,14 @@ def test_stale_gate_enqueues_refresh():
         adv=0.0,
         positions_as_of_ts="2026-01-20T09:00:00Z",
         limits_version_id="v1",
+        issuer_id="issuer-1",
+        sector_id="sector-1",
+        issuer_exposure=0.0,
+        issuer_absolute_limit=1000.0,
+        issuer_relative_limit_pct=1.0,
+        sector_exposure=0.0,
+        sector_absolute_limit=1000.0,
+        sector_relative_limit_pct=1.0,
         fx_rate_snapshot_id=None,
     )
     provider = InMemoryDataProvider(snapshot=snapshot)
