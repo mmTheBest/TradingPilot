@@ -14,6 +14,11 @@ from tradepilot.trades.repository import TradeRepository
 from tradepilot.trades.service import TradeService
 
 
+def test_trade_service_has_ingest_queue():
+    service = trades_api.get_trade_service()
+    assert service.ingest_queue is not None
+
+
 def test_stage_trade_endpoint():
     snapshot = DataSnapshot(
         positions_age_minutes=0,

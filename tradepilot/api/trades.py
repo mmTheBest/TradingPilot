@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends
 
 from tradepilot.data.provider import DbDataProvider
 from tradepilot.db.session import SessionLocal
+from tradepilot.ingest.queue import IngestQueue
 from tradepilot.integrations.emsx import FakeEmsxClient
 from tradepilot.trades.models import TradeRequest
 from tradepilot.trades.repository import TradeRepository
@@ -13,7 +14,13 @@ router = APIRouter()
 def get_trade_service() -> TradeService:
     provider = DbDataProvider(session_factory=SessionLocal)
     repository = TradeRepository(session_factory=SessionLocal)
-    return TradeService(emsx_client=FakeEmsxClient(), data_provider=provider, repository=repository)
+    ingest_queue = IngestQueue(session_factory=SessionLocal)
+    return TradeService(
+        emsx_client=FakeEmsxClient(),
+        data_provider=provider,
+        repository=repository,
+        ingest_queue=ingest_queue,
+    )
 
 
 @router.post("/api/v1/trades/stage")
