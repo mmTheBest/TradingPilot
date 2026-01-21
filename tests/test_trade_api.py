@@ -9,6 +9,7 @@ from tradepilot.api import trades as trades_api
 from tradepilot.data.provider import DataSnapshot, InMemoryDataProvider
 from tradepilot.db.base import Base
 from tradepilot.integrations.emsx import FakeEmsxClient
+from tradepilot.auth.dependencies import require_api_key
 from tradepilot.main import app
 from tradepilot.trades.repository import TradeRepository
 from tradepilot.trades.service import TradeService
@@ -45,6 +46,7 @@ def test_stage_trade_endpoint():
         repository=TradeRepository(session_factory=SessionLocal),
     )
     app.dependency_overrides[trades_api.get_trade_service] = lambda: service
+    app.dependency_overrides[require_api_key] = lambda: {"tenant_id": "tenant-1", "role": "OPS"}
     try:
         client = TestClient(app)
         response = client.post(

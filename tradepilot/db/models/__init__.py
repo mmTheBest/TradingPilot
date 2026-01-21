@@ -1,4 +1,5 @@
 from tradepilot.db.models.audit import AuditEvent
+from tradepilot.db.models.auth import ApiKey
 from tradepilot.db.models.book import Book
 from tradepilot.db.models.fx import FxRateSnapshot
 from tradepilot.db.models.ingest import IngestRefreshQueue, IngestRun
@@ -10,6 +11,7 @@ from tradepilot.db.models.tradeflow import SlackApprover, StagedTradeRecord, Tra
 
 __all__ = [
     "AuditEvent",
+    "ApiKey",
     "Book",
     "FxRateSnapshot",
     "IngestRefreshQueue",

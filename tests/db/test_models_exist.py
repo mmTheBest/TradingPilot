@@ -1,5 +1,6 @@
 from tradepilot.db.models import (
     AuditEvent,
+    ApiKey,
     Book,
     FxRateSnapshot,
     IngestRefreshQueue,
@@ -41,6 +42,7 @@ def test_models_importable():
     assert hasattr(RiskLimitsSnapshotFull, "payload_hash")
     assert hasattr(RiskLimitsDelta, "summary_json")
     assert AuditEvent
+    assert ApiKey
     assert StagedTradeRecord
     assert TradeApproval
     assert TradeSubmitQueue
