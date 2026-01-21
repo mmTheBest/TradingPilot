@@ -42,9 +42,23 @@ class TradeService:
                 self.ingest_queue.enqueue(request.tenant_id, request.book_id, "limits", reason="stale_gate")
             raise RiskCheckFailed(f"freshness gate blocked: {gate_result.reason}")
 
-        projected_exposure = snapshot.current_exposure + request.quantity
-        projected_issuer = snapshot.issuer_exposure + request.quantity
-        projected_sector = snapshot.sector_exposure + request.quantity
+        price = request.price or request.limit_price or snapshot.symbol_price
+        if price is None:
+            raise RiskCheckFailed("missing price for notional calculation")
+        side_sign = 1 if request.side == "buy" else -1
+        trade_notional = price * request.quantity * side_sign
+
+        projected_exposure = snapshot.current_exposure + trade_notional
+        projected_issuer = (
+            snapshot.issuer_exposure
+            - abs(snapshot.symbol_notional)
+            + abs(snapshot.symbol_notional + trade_notional)
+        )
+        projected_sector = (
+            snapshot.sector_exposure
+            - abs(snapshot.symbol_notional)
+            + abs(snapshot.symbol_notional + trade_notional)
+        )
         checks: list[RiskCheckResult] = [
             evaluate_limit(
                 projected_exposure,

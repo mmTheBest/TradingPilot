@@ -39,6 +39,8 @@ def test_stage_trade_endpoint():
         sector_exposure=0.0,
         sector_absolute_limit=10_000_000.0,
         sector_relative_limit_pct=1.0,
+        symbol_price=100.0,
+        symbol_notional=0.0,
         fx_rate_snapshot_id="fx-1",
     )
     engine = create_engine(

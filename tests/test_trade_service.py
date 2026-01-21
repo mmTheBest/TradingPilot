@@ -55,12 +55,50 @@ def test_trade_service_blocks_on_failed_risk_check():
         sector_exposure=900,
         sector_absolute_limit=10_000,
         sector_relative_limit_pct=1.0,
+        symbol_price=100.0,
+        symbol_notional=900.0,
         fx_rate_snapshot_id="fx-1",
     )
     service = build_service(snapshot)
     request = TradeRequest(tenant_id="tenant-1", book_id="book-1", symbol="AAPL", side="buy", quantity=200)
     with pytest.raises(RiskCheckFailed):
         service.stage_trade(request)
+
+
+def test_sell_reduces_exposure_notional():
+    snapshot = DataSnapshot(
+        positions_age_minutes=0,
+        limits_age_minutes=0,
+        current_exposure=1000.0,
+        absolute_limit=1200.0,
+        relative_limit_pct=1.0,
+        book_notional=5000.0,
+        adv=0.0,
+        positions_as_of_ts="2026-01-21T09:30:00Z",
+        limits_version_id="v1",
+        issuer_id="issuer-1",
+        sector_id="sector-1",
+        issuer_exposure=1000.0,
+        issuer_absolute_limit=2000.0,
+        issuer_relative_limit_pct=1.0,
+        sector_exposure=1000.0,
+        sector_absolute_limit=2000.0,
+        sector_relative_limit_pct=1.0,
+        symbol_price=100.0,
+        symbol_notional=1000.0,
+        fx_rate_snapshot_id="fx-1",
+    )
+    service = build_service(snapshot)
+    request = TradeRequest(
+        tenant_id="tenant-1",
+        book_id="book-1",
+        symbol="AAPL",
+        side="sell",
+        quantity=5,
+        price=100.0,
+    )
+    staged = service.stage_trade(request)
+    assert staged.status == "staged"
 
 
 def test_trade_service_blocks_on_stale_positions():
@@ -82,6 +120,8 @@ def test_trade_service_blocks_on_stale_positions():
         sector_exposure=0,
         sector_absolute_limit=10_000,
         sector_relative_limit_pct=1.0,
+        symbol_price=100.0,
+        symbol_notional=0.0,
         fx_rate_snapshot_id="fx-1",
     )
     service = build_service(snapshot)
@@ -110,6 +150,8 @@ def test_stage_trade_returns_internal_trade_id():
         sector_exposure=0,
         sector_absolute_limit=10_000,
         sector_relative_limit_pct=1.0,
+        symbol_price=100.0,
+        symbol_notional=0.0,
         fx_rate_snapshot_id="fx-1",
     )
     service = build_service(snapshot)
@@ -152,6 +194,8 @@ def test_stale_gate_enqueues_refresh():
         sector_exposure=0.0,
         sector_absolute_limit=1000.0,
         sector_relative_limit_pct=1.0,
+        symbol_price=100.0,
+        symbol_notional=0.0,
         fx_rate_snapshot_id=None,
     )
     provider = InMemoryDataProvider(snapshot=snapshot)
