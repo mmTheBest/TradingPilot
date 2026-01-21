@@ -6,6 +6,7 @@ Create Date: 2026-01-21
 """
 
 from alembic import op
+import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = "0003_ingest_queue_indexes"
@@ -15,13 +16,21 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.create_unique_constraint(
-        "uq_ingest_refresh_queue_dedupe",
-        "ingest_refresh_queue",
-        ["dedupe_key"],
-    )
-    op.create_index("ix_ingest_refresh_queue_status", "ingest_refresh_queue", ["status"])
-    op.create_index("ix_ingest_refresh_queue_next_attempt", "ingest_refresh_queue", ["next_attempt_at"])
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    index_names = {idx["name"] for idx in inspector.get_indexes("ingest_refresh_queue")}
+    unique_names = {uc["name"] for uc in inspector.get_unique_constraints("ingest_refresh_queue")}
+
+    if "uq_ingest_refresh_queue_dedupe" not in unique_names:
+        op.create_unique_constraint(
+            "uq_ingest_refresh_queue_dedupe",
+            "ingest_refresh_queue",
+            ["dedupe_key"],
+        )
+    if "ix_ingest_refresh_queue_status" not in index_names:
+        op.create_index("ix_ingest_refresh_queue_status", "ingest_refresh_queue", ["status"])
+    if "ix_ingest_refresh_queue_next_attempt" not in index_names:
+        op.create_index("ix_ingest_refresh_queue_next_attempt", "ingest_refresh_queue", ["next_attempt_at"])
 
 
 def downgrade() -> None:
