@@ -5,9 +5,6 @@ positions, risk limits, FX rates, and reference data, then evaluates exposure
 and data freshness before allowing an order to proceed. The goal is to make
 trade approvals auditable, repeatable, and safe by default.
 
-If you're new to this codebase, start here. This README explains what the
-service does, how to install it from GitHub, and how to run it locally.
-
 ## What TradePilot does
 
 - **Trade staging with risk checks**: validates exposure, issuer/sector limits,
@@ -27,11 +24,8 @@ service does, how to install it from GitHub, and how to run it locally.
 
 ## Install (from GitHub)
 
-We recommend installing into a virtual environment:
 
 ```bash
-python3.12 -m venv .venv
-.venv/bin/python -m pip install --upgrade pip
 .venv/bin/python -m pip install "git+https://github.com/mmTheBest/TradingPilot.git"
 ```
 
