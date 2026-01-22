@@ -1,18 +1,23 @@
 # TradePilot
 
-TradePilot is a trading-ops and risk-gating service for staging trades safely. It ingests
-positions, risk limits, FX rates, and reference data, evaluates exposure and freshness,
-and blocks or allows trades based on risk rules with explicit override workflows.
+TradePilot is a trading-operations service that stages trades safely. It pulls
+positions, risk limits, FX rates, and reference data, then evaluates exposure
+and data freshness before allowing an order to proceed. The goal is to make
+trade approvals auditable, repeatable, and safe by default.
 
-## What this project is for
+If you're new to this codebase, start here. This README explains what the
+service does, how to install it from GitHub, and how to run it locally.
 
-- **Trade staging with risk checks**: validate exposure, issuer/sector limits, liquidity,
-  and best-execution prompts before an order can be staged.
-- **Freshness gating**: fail closed if positions/limits are stale, with on-demand refresh
-  and logged override paths.
-- **Ingestion pipeline**: scheduled and on-demand ingestion of positions, limits, FX, and
-  reference data into Postgres with audit trails.
-- **Auditability**: store snapshots, deltas, and staged-trade metadata to replay decisions.
+## What TradePilot does
+
+- **Trade staging with risk checks**: validates exposure, issuer/sector limits,
+  liquidity, and best-execution prompts before staging a trade.
+- **Freshness gating**: fails closed when positions or limits are stale, with
+  explicit override workflows that are logged.
+- **Ingestion pipeline**: scheduled and on-demand ingestion of positions, limits,
+  FX, and reference data into Postgres with audit trails.
+- **Auditability**: stores snapshots, deltas, and staging metadata so decisions
+  can be replayed later.
 - **Ops integrations**: chatops approvals, metrics, and operational safeguards.
 
 ## Requirements
@@ -20,22 +25,35 @@ and blocks or allows trades based on risk rules with explicit override workflows
 - Python **3.12+**
 - Postgres **14+**
 
-## Installation
+## Install (from GitHub)
+
+We recommend installing into a virtual environment:
 
 ```bash
-cd /Users/mm/Projects/agent/TradePilot
 python3.12 -m venv .venv
-.venv/bin/python -m pip install -e ".[dev]"
+.venv/bin/python -m pip install --upgrade pip
+.venv/bin/python -m pip install "git+https://github.com/mmTheBest/TradingPilot.git"
+```
+
+To pin a specific version or commit:
+
+```bash
+.venv/bin/python -m pip install "git+https://github.com/mmTheBest/TradingPilot.git@<tag-or-sha>"
 ```
 
 ## Configuration
 
 TradePilot reads environment variables with the `TRADEPILOT_` prefix (see
-`tradepilot/config.py`). Common settings:
+`tradepilot/config.py`). Minimal required configuration:
 
 ```bash
 export TRADEPILOT_DATABASE_URL="postgresql+psycopg://tradepilot:tradepilot@localhost:5432/tradepilot"
 export TRADEPILOT_INGEST_POKE_SECRET="change-me"
+```
+
+Common optional settings:
+
+```bash
 export TRADEPILOT_POSITIONS_VIEW="positions_view"
 export TRADEPILOT_LIMITS_ADAPTER_KIND="fixture"   # or "api"
 export TRADEPILOT_LIMITS_API_ENDPOINT="http://localhost:9100"
@@ -66,19 +84,21 @@ INSERT INTO api_keys (id, tenant_id, role, owner, key_hash, created_at)
 VALUES ('local-ops-key', 'tenant-1', 'OPS', 'local-dev', 'n/a', '2026-01-22T00:00:00Z');
 ```
 
-The API key is currently looked up by primary key (`api_keys.id`), so the `X-API-Key`
+The API key is looked up by primary key (`api_keys.id`), so the `X-API-Key`
 header should match the `id` value.
 
 ## Running the API
 
 ```bash
-.venv/bin/uvicorn tradepilot.main:app --reload --port 8000
+uvicorn tradepilot.main:app --reload --port 8000
 ```
 
-Health and metrics:
+Endpoints:
 
 - `GET /healthz`
 - `GET /metrics` (requires an OPS API key)
+- `POST /api/v1/trades/stage`
+- `POST /api/v1/ingest/poke`
 
 ## Ingestion (positions, limits, FX, reference)
 
@@ -87,7 +107,7 @@ Ingestion is queued and processed by workers. At a minimum you need:
 1. A scheduler to enqueue stale jobs
 2. A worker to process `positions`, `limits`, and `reference` jobs
 
-Example wiring (fixture adapters shown):
+Example wiring:
 
 ```python
 from datetime import datetime, timezone
@@ -163,8 +183,8 @@ If positions/limits are stale, the API will block by default. To use an override
 
 Overrides require an OPS or RISK role and are capped by `TRADEPILOT_OVERRIDE_*` settings.
 
-## Tests
+## Tests (optional)
 
 ```bash
-.venv/bin/python -m pytest -v
+python -m pytest -v
 ```
