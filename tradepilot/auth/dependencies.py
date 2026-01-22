@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from fastapi import Header, HTTPException
+from fastapi import Depends, Header, HTTPException
 
 from tradepilot.db.models.auth import ApiKey
 from tradepilot.db.session import SessionLocal
@@ -19,8 +19,7 @@ def require_api_key(x_api_key: str = Header(default="")):
 
 
 def require_role(allowed_roles: set[str]):
-    def _dependency(x_api_key: str = Header(default="")):
-        ctx = require_api_key(x_api_key=x_api_key)
+    def _dependency(ctx=Depends(require_api_key)):
         if ctx["role"] not in allowed_roles:
             raise HTTPException(status_code=403, detail="forbidden")
         return ctx
