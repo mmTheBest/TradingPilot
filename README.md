@@ -45,7 +45,25 @@ the same way, backed by the same data, and recorded with a clear audit trail.
 - Python **3.12+**
 - Postgres **14+**
 
-## Install (from GitHub)
+## Quickstart (Docker Compose)
+
+```bash
+git clone https://github.com/mmTheBest/TradingPilot.git
+cd TradingPilot
+git checkout public-release
+cp .env.example .env
+docker compose up --build
+```
+
+The API will be available at `http://localhost:8000`.
+
+### Seed demo data (required for first run)
+
+```bash
+docker compose exec db psql -U tradepilot -d tradepilot -f /scripts/demo_seed.sql
+```
+
+## Install (from GitHub, local Python)
 
 We recommend installing into a virtual environment:
 
@@ -83,6 +101,16 @@ export TRADEPILOT_REFERENCE_ADAPTER_KIND="api"
 export TRADEPILOT_REFERENCE_API_ENDPOINT="http://localhost:9300"
 ```
 
+If you use Docker Compose, keep the database host as `db`. If you run locally,
+use `localhost` instead.
+
+### Adapter notes
+
+- **fixture** adapters are local and require no external services.
+- **api** adapters call external services; set `*_API_ENDPOINT` accordingly.
+- Reference data ingestion is optional for the quickstart demo because the demo
+  seed data includes a minimal security master.
+
 ## Database setup
 
 Run migrations:
@@ -94,18 +122,11 @@ alembic upgrade head
 
 Seed at least one book and API key so ingestion and API calls work:
 
-```sql
--- books
-INSERT INTO books (id, tenant_id, portfolio_id, desk_id, base_currency)
-VALUES ('book-1', 'tenant-1', 'portfolio-1', 'desk-1', 'USD');
-
--- api keys
-INSERT INTO api_keys (id, tenant_id, role, owner, key_hash, created_at)
-VALUES ('local-ops-key', 'tenant-1', 'OPS', 'local-dev', 'n/a', '2026-01-22T00:00:00Z');
+```bash
+psql postgresql://tradepilot:tradepilot@localhost:5432/tradepilot -f scripts/demo_seed.sql
 ```
 
-The API key is looked up by primary key (`api_keys.id`), so the `X-API-Key`
-header should match the `id` value.
+The demo API key is `demo-ops-key`. Use it as the `X-API-Key` header.
 
 ## Running the API
 
@@ -125,7 +146,10 @@ Endpoints:
 Ingestion is queued and processed by workers. At a minimum you need:
 
 1. A scheduler to enqueue stale jobs
-2. A worker to process `positions`, `limits`, and `reference` jobs
+2. A worker to process `positions` and `limits` jobs
+
+For the quickstart demo, you can skip ingestion and use the seeded snapshots.
+For real environments, run the scheduler and workers on an interval.
 
 Example wiring:
 
@@ -161,28 +185,28 @@ enqueuer.enqueue_due(datetime.now(tz=timezone.utc).isoformat())
 # process one job per call
 worker.run_once("positions")
 worker.run_once("limits")
-worker.run_once("reference")
+worker.run_once("reference")  # optional
 ```
 
 You can also trigger ingestion on demand:
 
 ```bash
 curl -X POST http://localhost:8000/api/v1/ingest/poke \
-  -H "X-API-Key: local-ops-key" \
+  -H "X-API-Key: demo-ops-key" \
   -H "X-Ingest-Secret: ${TRADEPILOT_INGEST_POKE_SECRET}" \
   -H "Content-Type: application/json" \
-  -d '{"tenant_id":"tenant-1","book_id":"book-1","data_type":"positions"}'
+  -d '{"tenant_id":"tenant-demo","book_id":"book-demo","data_type":"positions"}'
 ```
 
 ## Staging trades
 
 ```bash
 curl -X POST http://localhost:8000/api/v1/trades/stage \
-  -H "X-API-Key: local-ops-key" \
+  -H "X-API-Key: demo-ops-key" \
   -H "Content-Type: application/json" \
   -d '{
-    "tenant_id": "tenant-1",
-    "book_id": "book-1",
+    "tenant_id": "tenant-demo",
+    "book_id": "book-demo",
     "symbol": "AAPL",
     "side": "buy",
     "quantity": 100,
