@@ -8,7 +8,19 @@ trade approvals auditable, repeatable, and safe by default.
 If you're new to this codebase, start here. This README explains what the
 service does, how to install it from GitHub, and how to run it locally.
 
-## What TradePilot does
+## Why we built this
+
+Trading teams often rely on fragmented tools and manual checks for pre‑trade
+risk and approvals. That creates slow turnarounds, inconsistent decisions, and
+audit gaps. TradePilot standardizes the pre‑trade gate so every order is checked
+the same way, backed by the same data, and recorded with a clear audit trail.
+
+## Target users
+
+- Trading operations teams
+- Risk and compliance teams
+
+## Key features
 
 - **Trade staging with risk checks**: validates exposure, issuer/sector limits,
   liquidity, and best-execution prompts before staging a trade.
@@ -19,6 +31,14 @@ service does, how to install it from GitHub, and how to run it locally.
 - **Auditability**: stores snapshots, deltas, and staging metadata so decisions
   can be replayed later.
 - **Ops integrations**: chatops approvals, metrics, and operational safeguards.
+
+## Tech stack
+
+- **API**: FastAPI
+- **Data layer**: PostgreSQL + SQLAlchemy + Alembic
+- **Ingestion**: adapter-based pipeline for positions, limits, FX, reference data
+- **Observability**: Prometheus metrics
+- **Integrations**: Slack/Teams hooks, EMS/OMS staging via EMSX adapter
 
 ## Requirements
 
