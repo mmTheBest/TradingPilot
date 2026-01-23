@@ -32,7 +32,7 @@ We recommend installing into a virtual environment:
 ```bash
 python3.12 -m venv .venv
 .venv/bin/python -m pip install --upgrade pip
-.venv/bin/python -m pip install "git+https://github.com/mmTheBest/TradingPilot.git"
+.venv/bin/python -m pip install "git+https://github.com/mmTheBest/TradingPilot.git@public-release"
 ```
 
 To pin a specific version or commit:
@@ -182,9 +182,3 @@ If positions/limits are stale, the API will block by default. To use an override
 ```
 
 Overrides require an OPS or RISK role and are capped by `TRADEPILOT_OVERRIDE_*` settings.
-
-## Tests (optional)
-
-```bash
-python -m pytest -v
-```
